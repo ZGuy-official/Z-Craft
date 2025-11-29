@@ -1,445 +1,123 @@
-import React, { useEffect, useState, useRef } from "react";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Z Craft</title>
+  <link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
 
-// Z Craft — single-file React app
-// - Tailwind classes are used for styling (assumes Tailwind in host project)
-// - Default export is the app component
+<body class="page">
 
-const STARTER = [
-  { id: "earth", name: "Earth 🌍" },
-  { id: "water", name: "Water 💧" },
-  { id: "wind", name: "Wind 💨" },
-  { id: "light", name: "Light ✨" },
-  { id: "fire", name: "Fire 🔥" },
-];
+  <!-- Cookie Gate -->
+  <div id="cookieGate" class="modal hidden">
+    <div class="modal-content">
+      <h2 class="title">Welcome to Z Craft</h2>
+      <p class="text-sm">
+        Enter your username and accept cookies to continue.
+      </p>
 
-// deterministic mapping of pairs (order-insensitive) to crafted results
-const PAIRS = {
-  // some combos
-  "earth+fire": ["Lava 🌋", "Stone 🪨"],
-  "water+wind": ["Cloud ☁️", "Rain 🌧️"],
-  "light+wind": ["Aura ✨", "Atmosphere 🌫️"],
-  "water+fire": ["Steam 💨", "Swamp 🪵"],
-  "water+earth": ["Swamp 🐊", "Crocodile 🐊"],
-  "fire+light": ["Lamp 🪔", "Technology ⚙️"],
-  "earth+wind": ["Sand 🏖️", "Stone 🪨"],
-  "light+earth": ["Life 🌱", "House 🏠"],
-  "light+water": ["Rain 🌧️", "Life 🌱"],
-  "earth+water": ["Swamp 🐊", "Crocodile 🐊"],
-  "earth+light": ["Life 🌱", "Village 🏘️"],
-  "life+technology": ["Phone 📱", "Tablet 💻"],
-  "technology+light": ["YouTube ▶️", "Channel 📺"],
-  "earth+metal": ["Factory 🏭", "Factory 🏭"],
-};
+      <input id="usernameInput" class="input mt" placeholder="Your username" />
 
-// fallback: combine any two to produce a random plausible item
-const FALLBACK = [
-  "Thunder ⚡",
-  "Cloud ☁️",
-  "Rain 🌧️",
-  "Lava 🌋",
-  "Stone 🪨",
-  "Life 🌱",
-  "Atmosphere 🌫️",
-  "Aura ✨",
-  "Swamp 🐊",
-  "Crocodile 🐊",
-  "Crocs 🥿",
-  "Shoes 👟",
-  "Boat ⛵",
-  "Ship 🚢",
-  "Metal 🛠️",
-  "Smoke 💨",
-  "Human 🧑",
-  "House 🏠",
-  "Village 🏘️",
-  "City 🏙️",
-  "Technology ⚙️",
-  "Lamp 🪔",
-  "Phone 📱",
-  "Tablet 💻",
-  "Factory 🏭",
-  "Social Media 🌐",
-  "YouTube ▶️",
-  "Channel 📺",
-  "Z Guy Channel 😎",
-];
-
-const SHOP_ITEMS = [
-  { id: "chocolate", name: "Chocolate 🍫", price: 20 },
-  { id: "sand", name: "Sand 🏖️", price: 10 },
-];
-
-const MINE_REWARDS = {
-  easy: 2,
-  normal: 3,
-  hard: 5,
-  veryhard: 7,
-  insane: 10,
-};
-
-const MINE_COST = {
-  easy: 0,
-  normal: 0,
-  hard: 0,
-  veryhard: 5,
-  insane: 10,
-};
-
-const MINE_CONFIG = {
-  easy: { rows: 6, cols: 6, mines: 6 },
-  normal: { rows: 8, cols: 8, mines: 10 },
-  hard: { rows: 10, cols: 10, mines: 18 },
-  veryhard: { rows: 12, cols: 12, mines: 30 },
-  insane: { rows: 14, cols: 14, mines: 50 },
-};
-
-function uid() {
-  return Math.random().toString(36).slice(2, 9);
-}
-
-export default function ZCraftApp() {
-  const [username, setUsername] = useState("");
-  const [agreedCookies, setAgreedCookies] = useState(false);
-  const [cash, setCash] = useState(() => {
-    const v = localStorage.getItem("zcash");
-    return v ? Number(v) : 0;
-  });
-  const [inventory, setInventory] = useState(() => {
-    const v = localStorage.getItem("zinv");
-    return v ? JSON.parse(v) : STARTER.map((s) => s.id);
-  });
-  const [itemsMeta, setItemsMeta] = useState(() => {
-    const v = localStorage.getItem("zmeta");
-    return v ? JSON.parse(v) : STARTER.reduce((acc, s) => ({ ...acc, [s.id]: s.name }), {});
-  });
-  const [selected, setSelected] = useState([]);
-  const [messages, setMessages] = useState([]);
-  const [shop, setShop] = useState(SHOP_ITEMS);
-  const [minesweeperOpen, setMinesweeperOpen] = useState(false);
-  const [mineMode, setMineMode] = useState("easy");
-  const [mineKey, setMineKey] = useState(0);
-
-  useEffect(() => localStorage.setItem("zcash", String(cash)), [cash]);
-  useEffect(() => localStorage.setItem("zinv", JSON.stringify(inventory)), [inventory]);
-  useEffect(() => localStorage.setItem("zmeta", JSON.stringify(itemsMeta)), [itemsMeta]);
-  useEffect(() => localStorage.setItem("zuser", username), [username]);
-  useEffect(() => localStorage.setItem("zcookies", JSON.stringify(agreedCookies)), [agreedCookies]);
-
-  useEffect(() => {
-    const u = localStorage.getItem("zuser");
-    const c = localStorage.getItem("zcookies");
-    if (u) setUsername(u);
-    if (c) setAgreedCookies(JSON.parse(c));
-  }, []);
-
-  function addMessage(t) {
-    setMessages((m) => [t, ...m].slice(0, 8));
-  }
-
-  function buy(item) {
-    if (cash < item.price) return addMessage("Not enough cash to buy " + item.name);
-    setCash((c) => c - item.price);
-    // add to inventory as an item with id
-    const id = item.id + "_" + uid();
-    setInventory((inv) => [id, ...inv]);
-    setItemsMeta((meta) => ({ ...meta, [id]: item.name }));
-    addMessage(`Bought ${item.name} for ${item.price} cash`);
-  }
-
-  function craft(aId, bId) {
-    // craft using two inventory item ids
-    if (!aId || !bId) return;
-    if (aId === bId) {
-      addMessage("You must select two different items to craft.");
-      return;
-    }
-    const aName = itemsMeta[aId];
-    const bName = itemsMeta[bId];
-    // normalize base ids by removing trailing unique suffixes for matching
-    const baseA = aId.split("_")[0];
-    const baseB = bId.split("_")[0];
-    const keyA = baseA + "+" + baseB;
-    const keyB = baseB + "+" + baseA;
-    let result = null;
-    if (PAIRS[keyA]) result = randomChoice(PAIRS[keyA]);
-    else if (PAIRS[keyB]) result = randomChoice(PAIRS[keyB]);
-    else {
-      // if either ingredient is purchased shop item (chocolate/sand) then we require 'random item' plus purchased
-      if (baseA === "chocolate" || baseB === "chocolate" || baseA === "sand" || baseB === "sand") {
-        // combine purchased item with a random other inventory item to craft special things
-        result = randomChoice(FALLBACK.filter((f) => f.toLowerCase().includes(baseA) === false));
-      } else {
-        result = randomChoice(FALLBACK);
-      }
-    }
-
-    // create new inventory item
-    const newId = result.replace(/[^a-z0-9]+/gi, "_") + "_" + uid();
-    setInventory((inv) => [newId, ...inv]);
-    setItemsMeta((meta) => ({ ...meta, [newId]: result }));
-    setCash((c) => c + 5); // reward for crafting
-    addMessage(`Crafted ${result} (+5 cash)`);
-  }
-
-  function randomChoice(arr) {
-    return arr[Math.floor(Math.random() * arr.length)];
-  }
-
-  function toggleSelect(id) {
-    setSelected((s) => {
-      if (s.includes(id)) return s.filter((x) => x !== id);
-      if (s.length >= 2) return [id];
-      return [...s, id];
-    });
-  }
-
-  // Minesweeper logic is self-contained
-  function openMinesweeper(mode) {
-    const cost = MINE_COST[mode];
-    if (cash < cost) return addMessage("Not enough cash to play " + mode);
-    if (cost > 0) setCash((c) => c - cost);
-    setMineMode(mode);
-    setMinesweeperOpen(true);
-    setMineKey((k) => k + 1);
-  }
-
-  // simple UI
-  return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 p-4">
-      {!agreedCookies && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-11/12 md:w-1/3 shadow-lg">
-            <h2 className="text-xl font-bold">Welcome to Z Craft</h2>
-            <p className="mt-2 text-sm">Please enter your username and accept cookies to continue. This stores your username locally only.</p>
-            <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Your username" className="mt-3 w-full border p-2 rounded" />
-            <div className="flex items-center gap-3 mt-4">
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={agreedCookies} onChange={(e) => setAgreedCookies(e.target.checked)} /> Accept cookies (save username & progress)
-              </label>
-              <button className="ml-auto bg-blue-600 text-white px-4 py-2 rounded" onClick={() => {
-                if (!username) return addMessage("Enter a username before continuing.");
-                setAgreedCookies(true);
-                localStorage.setItem("zuser", username);
-                localStorage.setItem("zcookies", JSON.stringify(true));
-                addMessage(`Welcome, ${username}!`);
-              }}>Continue</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <header className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Z Craft ⚗️</h1>
-        <div className="flex items-center gap-4">
-          <div className="text-sm">User: <strong>{username || 'Guest'}</strong></div>
-          <div className="bg-white px-3 py-2 rounded shadow">Cash: <strong>{cash}</strong> 💵</div>
-        </div>
-      </header>
-
-      <main className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <section className="md:col-span-3 space-y-4">
-          <div className="bg-white p-4 rounded shadow">
-            <h2 className="font-semibold">Inventory</h2>
-            <div className="flex flex-wrap gap-2 mt-3">
-              {inventory.map((id) => (
-                <button key={id} onClick={() => toggleSelect(id)} className={`px-3 py-1 rounded border ${selected.includes(id) ? 'bg-blue-100 border-blue-400' : 'bg-gray-50'}`}>
-                  {itemsMeta[id]}
-                </button>
-              ))}
-            </div>
-            <div className="mt-4 flex gap-2">
-              <button className="bg-green-600 text-white px-3 py-2 rounded" onClick={() => {
-                if (selected.length < 2) return addMessage('Select two items to craft.');
-                craft(selected[0], selected[1]);
-                setSelected([]);
-              }}>Craft (+5 cash)</button>
-              <button className="bg-gray-200 px-3 py-2 rounded" onClick={() => { setSelected([]); }}>Clear selection</button>
-            </div>
-          </div>
-
-          <div className="bg-white p-4 rounded shadow">
-            <h2 className="font-semibold">Messages / Activity</h2>
-            <ul className="mt-3 space-y-2">
-              {messages.map((m, i) => (
-                <li key={i} className="text-sm">• {m}</li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="bg-white p-4 rounded shadow">
-            <h2 className="font-semibold">Minesweeper</h2>
-            <p className="text-sm mt-1">Choose difficulty and play. Very hard and insane cost cash to enter.</p>
-            <div className="flex gap-2 mt-3 flex-wrap">
-              {['easy','normal','hard','veryhard','insane'].map((d) => (
-                <button key={d} onClick={() => openMinesweeper(d)} className="px-3 py-2 rounded bg-indigo-600 text-white">
-                  {d.toUpperCase()} {MINE_COST[d] > 0 ? `(cost ${MINE_COST[d]})` : ''}
-                </button>
-              ))}
-            </div>
-            <p className="text-sm mt-2">Rewards: easy {MINE_REWARDS.easy}, normal {MINE_REWARDS.normal}, hard {MINE_REWARDS.hard}, very hard {MINE_REWARDS.veryhard}, insane {MINE_REWARDS.insane}</p>
-          </div>
-
-        </section>
-
-        <aside className="space-y-4">
-          <div className="bg-white p-4 rounded shadow">
-            <h3 className="font-semibold">Shop</h3>
-            <div className="mt-3 space-y-2">
-              {shop.map((it) => (
-                <div className="flex items-center justify-between" key={it.id}>
-                  <div>{it.name} — {it.price} 💵</div>
-                  <button onClick={() => buy(it)} className="bg-yellow-500 px-3 py-1 rounded text-sm">Buy</button>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-gray-500 mt-2">Chocolate + random item → Chocolate Factory / Willy Wonka (requires chocolate + random)</p>
-            <p className="text-xs text-gray-500">Sand + random item → Beach (requires sand + random)</p>
-          </div>
-
-          <div className="bg-white p-4 rounded shadow">
-            <h3 className="font-semibold">Quick craft tips</h3>
-            <ul className="text-sm mt-2 space-y-1">
-              <li>Pick two inventory items and press Craft.</li>
-              <li>Each successful craft gives +5 cash.</li>
-              <li>Shop items are special and combine with a random other item to make unique things.</li>
-            </ul>
-          </div>
-
-          <div className="bg-white p-4 rounded shadow">
-            <h3 className="font-semibold">Account</h3>
-            <div className="mt-2 text-sm">Username: {username || 'Guest'}</div>
-            <button className="mt-2 bg-red-400 px-3 py-1 rounded" onClick={() => {
-              setUsername('');
-              setAgreedCookies(false);
-              localStorage.removeItem('zuser');
-              localStorage.removeItem('zcookies');
-              addMessage('Signed out.');
-            }}>Sign Out</button>
-          </div>
-
-        </aside>
-      </main>
-
-      {minesweeperOpen && (
-        <Minesweeper key={mineKey} config={MINE_CONFIG[mineMode]} onClose={(won) => {
-          setMinesweeperOpen(false);
-          if (won) {
-            setCash(c => c + MINE_REWARDS[mineMode]);
-            addMessage(`You won ${mineMode} minesweeper! (+${MINE_REWARDS[mineMode]} cash)`);
-          } else {
-            addMessage(`You lost ${mineMode} minesweeper.`);
-          }
-        }} />
-      )}
-    </div>
-  );
-}
-
-function Minesweeper({ config, onClose }) {
-  const { rows, cols, mines } = config;
-  const [board, setBoard] = useState(() => makeBoard(rows, cols, mines));
-  const [status, setStatus] = useState('playing');
-
-  useEffect(() => {
-    setBoard(makeBoard(rows, cols, mines));
-    setStatus('playing');
-  }, [rows, cols, mines]);
-
-  function revealCell(r, c) {
-    if (status !== 'playing') return;
-    setBoard((b) => {
-      const nb = b.map(row => row.map(cell => ({ ...cell })));
-      const cell = nb[r][c];
-      if (cell.revealed || cell.flagged) return nb;
-      if (cell.mine) {
-        // reveal all
-        for (let i=0;i<rows;i++) for (let j=0;j<cols;j++) nb[i][j].revealed = true;
-        setStatus('lost');
-        return nb;
-      }
-      floodReveal(nb, r, c, rows, cols);
-      // check win
-      const allRevealed = nb.flat().filter(x=>!x.mine).every(x=>x.revealed);
-      if (allRevealed) setStatus('won');
-      return nb;
-    });
-  }
-
-  function toggleFlag(r,c){
-    setBoard(b=>{
-      const nb = b.map(row=>row.map(cell=>({ ...cell })));
-      nb[r][c].flagged = !nb[r][c].flagged;
-      return nb;
-    });
-  }
-
-  useEffect(() => {
-    if (status === 'won') {
-      setTimeout(()=> onClose(true), 700);
-    }
-    if (status === 'lost') {
-      setTimeout(()=> onClose(false), 700);
-    }
-  }, [status]);
-
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white p-4 rounded shadow-lg max-w-[95vw] overflow-auto">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-bold">Minesweeper</h3>
-          <button className="text-sm" onClick={() => { onClose(false); }}>Close</button>
-        </div>
-        <div className="grid gap-0" style={{ gridTemplateColumns: `repeat(${cols}, 28px)` }}>
-          {board.flat().map((cell, idx) => (
-            <div key={idx} onClick={() => revealCell(cell.r, cell.c)} onContextMenu={(e)=>{e.preventDefault(); toggleFlag(cell.r, cell.c);}} className={`w-7 h-7 border flex items-center justify-center text-xs select-none ${cell.revealed ? 'bg-gray-100' : 'bg-gray-300 cursor-pointer'}`}>
-              {cell.revealed ? (cell.mine ? '💣' : (cell.adjacent > 0 ? cell.adjacent : '')) : (cell.flagged ? '🚩' : '')}
-            </div>
-          ))}
-        </div>
-        <div className="mt-3 text-sm">Click to reveal, right-click to flag.</div>
+      <div class="row mt">
+        <label class="row gap">
+          <input type="checkbox" id="cookieCheckbox"> Accept cookies
+        </label>
+        <button id="continueBtn" class="btn ml-auto">Continue</button>
       </div>
     </div>
-  );
-}
+  </div>
 
-function makeBoard(rows, cols, mines) {
-  // initialize
-  let board = Array.from({ length: rows }, (_, r) => Array.from({ length: cols }, (_, c) => ({ r, c, mine: false, revealed: false, flagged: false, adjacent: 0 })));
-  // place mines
-  let placed = 0;
-  while (placed < mines) {
-    const r = Math.floor(Math.random() * rows);
-    const c = Math.floor(Math.random() * cols);
-    if (!board[r][c].mine) {
-      board[r][c].mine = true;
-      placed++;
-    }
-  }
-  // compute adjacent counts
-  for (let r=0;r<rows;r++) for (let c=0;c<cols;c++) {
-    if (board[r][c].mine) continue;
-    let adj = 0;
-    for (let dr=-1; dr<=1; dr++) for (let dc=-1; dc<=1; dc++) {
-      const nr = r+dr, nc = c+dc;
-      if (nr>=0 && nr<rows && nc>=0 && nc<cols && board[nr][nc].mine) adj++;
-    }
-    board[r][c].adjacent = adj;
-  }
-  return board;
-}
+  <!-- HEADER -->
+  <header class="header">
+    <h1 class="title-xl">Z Craft ⚗️</h1>
+    <div class="row gap">
+      <div>User: <strong id="usernameDisplay">Guest</strong></div>
+      <div class="cash-box">Cash: <strong id="cashDisplay">0</strong> 💵</div>
+    </div>
+  </header>
 
-function floodReveal(board, r, c, rows, cols) {
-  const stack = [[r,c]];
-  while (stack.length) {
-    const [cr, cc] = stack.pop();
-    const cell = board[cr][cc];
-    if (cell.revealed || cell.mine || cell.flagged) continue;
-    cell.revealed = true;
-    if (cell.adjacent === 0) {
-      for (let dr=-1; dr<=1; dr++) for (let dc=-1; dc<=1; dc++) {
-        const nr = cr+dr, nc = cc+dc;
-        if (nr>=0 && nr<rows && nc>=0 && nc<cols && !board[nr][nc].revealed) stack.push([nr,nc]);
-      }
-    }
-  }
-}
+  <!-- MAIN GRID -->
+  <main class="grid">
+
+    <!-- INVENTORY + MESSAGES + MINESWEEPER -->
+    <section class="col-main">
+
+      <!-- Inventory -->
+      <div class="card">
+        <h2 class="title-sm">Inventory</h2>
+        <div id="inventory" class="flex-wrap mt"></div>
+
+        <div class="row mt">
+          <button id="craftBtn" class="btn">Craft (+5 cash)</button>
+          <button id="clearSelectBtn" class="btn-light">Clear selection</button>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div class="card">
+        <h2 class="title-sm">Messages / Activity</h2>
+        <ul id="messages" class="messages"></ul>
+      </div>
+
+      <!-- Minesweeper -->
+      <div class="card">
+        <h2 class="title-sm">Minesweeper</h2>
+        <p class="text-sm mt">Very hard & insane cost cash to enter.</p>
+
+        <div class="row gap mt flex-wrap">
+          <button class="btn mines-btn" data-mode="easy">EASY</button>
+          <button class="btn mines-btn" data-mode="normal">NORMAL</button>
+          <button class="btn mines-btn" data-mode="hard">HARD</button>
+          <button class="btn mines-btn" data-mode="veryhard">VERY HARD</button>
+          <button class="btn mines-btn" data-mode="insane">INSANE</button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- SHOP + OTHER PANELS -->
+    <aside class="col-side">
+
+      <!-- Shop -->
+      <div class="card">
+        <h3 class="title-sm">Shop</h3>
+        <div id="shopList" class="mt"></div>
+      </div>
+
+      <!-- Tips -->
+      <div class="card">
+        <h3 class="title-sm">Quick craft tips</h3>
+        <ul class="text-sm mt">
+          <li>Pick two items and press Craft.</li>
+          <li>Each craft gives +5 cash.</li>
+          <li>Shop items have special crafting rules.</li>
+        </ul>
+      </div>
+
+      <!-- Account -->
+      <div class="card">
+        <h3 class="title-sm">Account</h3>
+        <div class="text-sm mt">Username: <span id="usernameAcct">Guest</span></div>
+        <button id="signOut" class="btn-danger mt">Sign Out</button>
+      </div>
+
+    </aside>
+
+  </main>
+
+  <!-- MINES MODAL -->
+  <div id="minesModal" class="modal hidden">
+    <div class="modal-content mines-content">
+      <div class="row space">
+        <h3 class="title-sm">Minesweeper</h3>
+        <button id="closeMines" class="btn-light">Close</button>
+      </div>
+      <div id="minesBoard" class="mines-board"></div>
+      <div class="text-sm mt">Click to reveal, right-click to flag.</div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
