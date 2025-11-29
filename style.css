@@ -1,0 +1,129 @@
+/* Page + Layout */
+body.page {
+  font-family: sans-serif;
+  background: #f8fafc;
+  color: #111827;
+  padding: 1rem;
+}
+.grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 768px) {
+  .grid {
+    grid-template-columns: 3fr 1fr;
+  }
+}
+
+/* Cards & Containers */
+.card {
+  background: white;
+  padding: 1rem;
+  border-radius: .5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,.1);
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+/* Text */
+.title { font-size: 1.4rem; font-weight: bold; }
+.title-sm { font-weight: 600; }
+.title-xl { font-size: 1.8rem; font-weight: bold; }
+
+/* Buttons */
+.btn, .btn-light, .btn-danger {
+  padding: .5rem 1rem;
+  border-radius: .25rem;
+  cursor: pointer;
+  border: none;
+}
+.btn { background: #2563eb; color: white; }
+.btn-light { background: #e5e7eb; }
+.btn-danger { background: #f87171; color: white; }
+
+/* Misc Components */
+.input {
+  width: 100%;
+  padding: .5rem;
+  border: 1px solid #d1d5db;
+  border-radius: .25rem;
+}
+.cash-box {
+  background: white;
+  padding: .5rem .75rem;
+  border-radius: .25rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,.1);
+}
+
+/* Utils */
+.row { display: flex; align-items: center; }
+.flex-wrap { display: flex; flex-wrap: wrap; gap: .25rem; }
+.mt { margin-top: .5rem; }
+.mt-2 { margin-top: .75rem; }
+.gap { gap: .5rem; }
+.ml-auto { margin-left: auto; }
+.text-sm { font-size: .85rem; }
+
+/* Inventory */
+.inv-item {
+  padding: .35rem .6rem;
+  border: 1px solid #d1d5db;
+  border-radius: .25rem;
+  background: #f9fafb;
+  cursor: pointer;
+}
+.inv-selected {
+  background: #dbeafe;
+  border-color: #60a5fa;
+}
+
+/* Messages */
+.messages li {
+  font-size: .85rem;
+  margin-bottom: .25rem;
+}
+
+/* Modal */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+.modal.hidden { display: none; }
+.modal-content {
+  background: white;
+  padding: 1rem;
+  width: 90%;
+  max-width: 420px;
+  border-radius: .5rem;
+}
+
+/* Minesweeper Board */
+.mines-content {
+  max-width: 600px;
+}
+.mines-board {
+  display: grid;
+  margin-top: 1rem;
+  gap: 0;
+}
+.cell {
+  width: 26px;
+  height: 26px;
+  border: 1px solid #94a3b8;
+  font-size: .7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+.cell-hidden { background: #cbd5e1; cursor: pointer; }
+.cell-revealed { background: #f1f5f9; }
