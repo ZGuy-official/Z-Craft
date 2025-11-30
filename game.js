@@ -13,7 +13,7 @@ const STARTER = [
   { id: "water", name: "Water 💧" },
   { id: "wind", name: "Wind 💨" },
   { id: "light", name: "Light ✨" },
-  { id: "fire", name: "Fire 🔥" },
+  { id: "fire", name: "Fire 🔥" }
 ];
 
 // Crafting pairs
